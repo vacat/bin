@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+source `dirname $(readlink -f $0)`/logging
+
+function usage() {
+  echo ""
+  echo "usage:"
+  echo "    $0 branchname"
+}
+
+URL=`svn info 2>/dev/null | grep ^URL`
+if [ $? != 0 ]; then 
+    die "$0 should run in svn folder"
+fi
+URL1=`echo $URL | awk '{print $2}'`
+URL2=$URL
+
+if [[ "$URL1" == *"/trunk" ]]; then
+    URL2=${URL1%%/trunk}/branches
+elif [[ "$URL1" == *"/branches/"* ]]; then
+    URL2=${URL1%%/branches/*}/branches
+fi
+
+if [ -z "$1" ]; then
+    error "empty branche name!"
+    usage
+    exit 1
+fi
+
+if [ "$1" == "trunk" ]; then
+    URL2=${URL2%%/branches}/trunk
+else
+    URL2="$URL2/$1"
+fi
+
+info "Current: $URL1"
+if [ "$URL2" == "$URL1" ]; then
+    die "incorrect svn path: $URL2"
+fi
+
+info "Merge from: $URL2"
+svn merge $URL2

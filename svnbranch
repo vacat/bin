@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+source `dirname $(readlink -f $0)`/logging
+
+function usage() {
+  echo ""
+  echo "usage:"
+  echo "    $0 branchname [username]"
+}
+
+URL=`svn info 2>/dev/null | grep ^URL`
+if [ $? != 0 ]; then 
+    die "$0 should run in svn folder"
+fi
+URL1=`echo $URL | awk '{print $2}'`
+URL2=$URL1
+
+if [[ "$URL1" == *"/trunk" ]]; then
+    URL2=${URL1%%/trunk}/branches
+elif [[ "$URL1" == *"/branches/"* ]]; then
+    URL2=${URL1%%/branches/*}/branches
+fi
+
+if [ -z "$1" ]; then
+    error "empty branche name!"
+    usage
+    exit 1
+fi
+
+USER="default"
+if [ -f "$HOME/.svnname" ]; then
+    USER=`cat ~/.svnname`
+fi
+if [ ! -z "$2" ]; then
+    USER=$2
+fi
+
+BNAME=`echo $1"_"$USER"_"$(date +"%Y%m%d") | tr [a-z] [A-Z]`
+URL2="$URL2/$BNAME"
+info "branch from $URL1 to $URL2"
+svn copy $URL1 $URL2
